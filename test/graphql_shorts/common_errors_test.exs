@@ -4,11 +4,30 @@ defmodule GraphQLShorts.CommonErrorsTest do
 
   describe "handle_error_response" do
     test "handles error response" do
-      assert {:error, %{code: :im_a_teapot, message: "i'm not a teapot"}} =
+      assert {:error,
+              [
+                %GraphQLShorts.TopLevelError{
+                  code: :im_a_teapot,
+                  message: "i'm not a teapot",
+                  field: ["test"],
+                  extensions: %{documentation: "https://api.com/docs"}
+                }
+              ]} =
                GraphQLShorts.CommonErrors.handle_error_response(
                  {:error, %{code: :im_a_teapot, message: "i'm a teapot"}},
-                 %{code: :im_a_teapot},
-                 fn e -> %{e | message: "i'm not a teapot"} end
+                 {
+                   %{code: :im_a_teapot},
+                   fn %{code: :im_a_teapot} ->
+                     GraphQLShorts.TopLevelError.create(
+                       code: :im_a_teapot,
+                       message: "i'm not a teapot",
+                       field: ["test"],
+                       extensions: %{
+                         documentation: "https://api.com/docs"
+                       }
+                     )
+                   end
+                 }
                )
     end
   end
