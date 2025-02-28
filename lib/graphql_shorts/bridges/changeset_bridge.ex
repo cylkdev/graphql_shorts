@@ -7,6 +7,8 @@ if Code.ensure_loaded?(Ecto) do
     """
     alias GraphQLShorts.UserError
 
+    @default_path [:input]
+
     @doc false
     @spec errors_on_changeset(changeset :: Ecto.Changeset.t()) :: map()
     def errors_on_changeset(changeset) do
@@ -21,117 +23,157 @@ if Code.ensure_loaded?(Ecto) do
     @doc """
     Converts any changeset error that exists in the arguments to a
     `GraphQLShorts.UserError` struct based on the schema.
-
-    ### Examples
-
-        iex> GraphQLShorts.Bridges.ChangesetBridge.build_user_errors(
-        ...>   %{title: ["can't be blank"]},
-        ...>   %{input: %{title: ""}},
-        ...>   [path: [:input], mappings: [:title]]
-        ...> )
-        [
-          %GraphQLShorts.UserError{
-            message: "can't be blank",
-            field: [:input, :title]
-          }
-        ]
     """
-    @spec build_user_errors(
+    @spec convert_to_error_message(
             changeset_or_map :: Ecto.Changeset.t() | map(),
             args :: map(),
-            definition :: map() | keyword()
+            schema_opts :: map() | keyword()
           ) :: list(GraphQLShorts.UserError.t())
-    @spec build_user_errors(
+    @spec convert_to_error_message(
             changeset_or_map :: Ecto.Changeset.t() | map(),
             args :: map(),
-            definition :: map() | keyword(),
+            schema_opts :: map() | keyword(),
             opts :: keyword()
           ) :: list(GraphQLShorts.UserError.t())
-    def build_user_errors(changeset, args, definition, opts \\ [])
+    def convert_to_error_message(changeset, args, schema_opts, opts \\ [])
 
-    def build_user_errors(changeset, args, definition, opts)
+    def convert_to_error_message(changeset, args, schema_opts, opts)
         when is_struct(changeset, Ecto.Changeset) do
       changeset
       |> errors_on_changeset()
-      |> build_user_errors(args, definition, opts)
+      |> convert_to_error_message(args, schema_opts, opts)
     end
 
-    def build_user_errors(errors, args, definition, opts) do
-      path = definition[:path] || []
-
-      mappings = definition[:mappings] || []
+    def convert_to_error_message(errors, args, schema_opts, _opts) do
+      path = schema_opts[:path] || @default_path
 
       input = get_in(args, path) || %{}
 
       errors
-      |> recurse_build(input, mappings, path, [], opts)
+      |> Map.to_list()
+      |> recurse_build(input, schema_opts[:keys] || [], path, [])
       |> Enum.reverse()
     end
 
-    defp recurse_build(message, _input, _mappings, path, acc, opts) when is_binary(message) do
-      prefix = opts[:field_prefix] || []
-
-      path = prefix ++ Enum.reverse(path)
-
-      user_error = UserError.create(message: message, field: path)
-
-      [user_error | acc]
+    defp recurse_build([], _input, _schema_keys, _path, acc) do
+      acc
     end
 
-    defp recurse_build([error | todo], input, mappings, path, acc, opts) do
-      if Enum.any?(todo) do
-        recurse_build(error, input, mappings, path, acc, opts) ++
-          recurse_build(todo, input, mappings, path, acc, opts)
-      else
-        recurse_build(error, input, mappings, path, acc, opts)
+    defp recurse_build([head | tail], input, schema_keys, path, acc) do
+      with acc <- recurse_build(head, input, schema_keys, path, acc) do
+        recurse_build(tail, input, schema_keys, path, acc)
       end
     end
 
-    defp recurse_build(errors, input, [mappings | mappings_todo], path, acc, opts) do
-      if Enum.any?(mappings_todo) do
-        with acc <- recurse_build(errors, input, mappings, path, acc, opts) do
-          recurse_build(errors, input, mappings_todo, path, acc, opts)
-        end
-      else
-        recurse_build(errors, input, mappings, path, acc, opts)
+    defp recurse_build({_error_key, [] = _errors}, _input, _schema_keys, _path, acc) do
+      acc
+    end
+
+    defp recurse_build({error_key, [head | tail]}, input, schema_keys, path, acc) do
+      with acc <- recurse_build({error_key, head}, input, schema_keys, path, acc) do
+        recurse_build({error_key, tail}, input, schema_keys, path, acc)
       end
     end
 
-    defp recurse_build(errors, [input | input_todo], mappings, path, acc, opts) do
-      if Enum.any?(input_todo) do
-        with acc <- recurse_build(errors, input, mappings, path, acc, opts) do
-          recurse_build(errors, input_todo, mappings, path, acc, opts)
-        end
-      else
-        recurse_build(errors, input, mappings, path, acc, opts)
+    defp recurse_build({error_key, errors}, input, schema_keys, path, acc) when is_map(errors) do
+      case find_schema_opts(schema_keys, error_key) do
+        {:error, :not_found} ->
+          acc
+
+        schema_opts ->
+          schema_opts = schema_opts || []
+
+          input_key = schema_opts[:input_key] || error_key
+
+          if Map.has_key?(input, input_key) do
+            input = Map.fetch!(input, input_key)
+
+            schema_keys = schema_opts[:keys] || []
+
+            errors
+            |> Map.to_list()
+            |> recurse_build(input, schema_keys, [input_key | path], acc)
+          else
+            acc
+          end
       end
     end
 
-    defp recurse_build(errors, input, {error_key, mappings}, path, acc, opts) do
-      input_field = mappings[:field] || error_key
+    defp recurse_build({error_key, message}, input, schema_keys, path, acc)
+         when is_binary(message) do
+      case find_schema_opts(schema_keys, error_key) do
+        {:error, :not_found} ->
+          acc
 
-      input_keys = mappings[:keys]
+        schema_opts ->
+          schema_opts = schema_opts || []
 
-      if Map.has_key?(errors, error_key) and is_map(input) and Map.has_key?(input, error_key) do
-        input = Map.get(input, input_field)
+          input_key = schema_opts[:input_key] || error_key
 
-        errors
-        |> Map.fetch!(error_key)
-        |> recurse_build(input, input_keys, [input_field | path], acc, opts)
-      else
-        acc
+          input
+          |> List.wrap()
+          |> Enum.reduce(acc, fn input, acc ->
+            if Map.has_key?(input, input_key) do
+              field = Enum.reverse([input_key | path])
+
+              {message, field} = resolve_msg_field(message, field, schema_opts)
+
+              user_error = UserError.create(message: message, field: field)
+
+              [user_error | acc]
+            else
+              acc
+            end
+          end)
       end
     end
 
-    defp recurse_build(errors, input, error_key, path, acc, opts) when is_atom(error_key) do
-      if Map.has_key?(errors, error_key) and is_map(input) and Map.has_key?(input, error_key) do
-        input = Map.get(input, error_key)
+    defp resolve_msg_field(message, field, schema_opts) do
+      case schema_opts[:resolve] do
+        nil ->
+          {message, field}
 
-        errors
-        |> Map.fetch!(error_key)
-        |> recurse_build(input, nil, [error_key | path], acc, opts)
-      else
-        acc
+        fun ->
+          result =
+            if is_function(fun, 2) do
+              fun.(message, field)
+            else
+              raise "Expected a 2-arity function, got: #{inspect(fun)}"
+            end
+
+          {message, field} =
+            case result do
+              {message, field} ->
+                {message, field}
+
+              term ->
+                raise "Expected resolve function to return {message, field}, got: #{inspect(term)}"
+            end
+
+          unless is_binary(message) do
+            raise "Expected message to be a string, got: #{inspect(message)}"
+          end
+
+          unless Enum.all?(field, &is_atom/1) do
+            raise "Expected field to be a list of atoms, got: #{inspect(field)}"
+          end
+
+          {message, field}
+      end
+    end
+
+    defp find_schema_opts(list, key) do
+      res =
+        Enum.find(list, fn
+          ^key -> true
+          {^key, _} -> true
+          _ -> false
+        end)
+
+      case res do
+        {^key, schema_opts} -> schema_opts
+        ^key -> nil
+        nil -> {:error, :not_found}
       end
     end
   end

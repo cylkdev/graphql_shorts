@@ -24,7 +24,7 @@ defmodule GraphQLShorts do
 
       error_fun =
         fn changeset ->
-          ChangesetBridge.build_user_errors(
+          ChangesetBridge.convert_to_error_message(
             changeset,
             args,
             [
