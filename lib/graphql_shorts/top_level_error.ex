@@ -11,7 +11,7 @@ defmodule GraphQLShorts.TopLevelError do
 
   @enforce_keys [:code, :message]
 
-  defstruct @enforce_keys ++ [:field, extensions: %{}]
+  defstruct @enforce_keys ++ [extensions: %{}]
 
   @doc """
   Returns a struct.
@@ -49,8 +49,8 @@ defmodule GraphQLShorts.TopLevelError do
       ...> |> GraphQLShorts.TopLevelError.create()
       ...> |> GraphQLShorts.TopLevelError.to_json()
   """
-  @spec to_json(data :: term()) :: {:ok, map()} | {:error, term()}
-  @spec to_json(data :: term(), opts :: keyword()) :: {:ok, map()} | {:error, term()}
+  @spec to_json(data :: t() | map()) :: {:ok, map()} | {:error, term()}
+  @spec to_json(data :: t() | map(), opts :: keyword()) :: {:ok, map()} | {:error, term()}
   def to_json(data, opts \\ [])
 
   def to_json(data, opts) when is_list(data) do
@@ -87,11 +87,10 @@ defmodule GraphQLShorts.TopLevelError do
         }
       }
   """
-  @spec to_jsonable_map(data :: map()) :: map()
-  @spec to_jsonable_map(data :: map(), opts :: keyword()) :: map()
-  def to_jsonable_map(%{code: code, message: message} = data, opts \\ [])
-      when is_struct(data, __MODULE__) do
-    data = Map.from_struct(data)
+  @spec to_jsonable_map(data :: t() | map()) :: map()
+  @spec to_jsonable_map(data :: t() | map(), opts :: keyword()) :: map()
+  def to_jsonable_map(%{code: code, message: message} = data, _opts \\ []) do
+    data = if is_struct(data), do: Map.from_struct(data), else: data
 
     exts = Serializer.to_jsonable_map(data[:extensions] || %{})
 
@@ -103,23 +102,9 @@ defmodule GraphQLShorts.TopLevelError do
       |> Map.merge(exts)
       |> Map.put(:code, code |> to_string() |> String.upcase())
 
-    exts =
-      case data[:field] do
-        nil -> exts
-        field -> Map.put_new(exts, :field, encode_field(field, opts))
-      end
-
-    %{message: message, extensions: exts}
-  end
-
-  defp encode_field(field, opts) do
-    field = List.wrap(field)
-
-    unless Enum.any?(field) and Enum.all?(field, &is_binary/1) do
-      raise ArgumentError,
-            "Expected field to be a string or a list of strings, got: #{inspect(field)}"
-    end
-
-    GraphQLShorts.Encoder.to_json(field, opts)
+    %{
+      message: message,
+      extensions: exts
+    }
   end
 end

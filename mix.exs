@@ -71,7 +71,9 @@ defmodule GraphQLShorts.MixProject do
       {:proper_case, "~> 1.0"},
       {:jason, "~> 1.0", optional: true},
       {:absinthe, "~> 1.0", optional: true},
-      {:ecto, "~> 3.0", optional: true}
+      {:ecto, "~> 3.0", optional: true},
+
+      {:error_message, "~> 0.3", optional: true}
     ]
   end
 

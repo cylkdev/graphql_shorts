@@ -9,7 +9,6 @@ defmodule GraphQLShorts.CommonErrorsTest do
                 %GraphQLShorts.TopLevelError{
                   code: :im_a_teapot,
                   message: "i'm not a teapot",
-                  field: ["test"],
                   extensions: %{documentation: "https://api.com/docs"}
                 }
               ]} =
@@ -21,7 +20,6 @@ defmodule GraphQLShorts.CommonErrorsTest do
                      GraphQLShorts.TopLevelError.create(
                        code: :im_a_teapot,
                        message: "i'm not a teapot",
-                       field: ["test"],
                        extensions: %{
                          documentation: "https://api.com/docs"
                        }

@@ -77,7 +77,6 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
 
       schema =
         [
-          path: [:input],
           keys: [
             title: [
               input_key: :title,
@@ -133,7 +132,6 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
 
       schema =
         [
-          path: [:input],
           keys: [
             title: [
               input_key: :title,
@@ -172,7 +170,6 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
       arguments = %{input: %{title: ""}}
 
       schema = [
-        path: [:input],
         keys: [:title]
       ]
 
@@ -207,7 +204,6 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
 
       schema =
         [
-          path: [:input],
           keys: [
             :title,
             comments: [
@@ -259,7 +255,6 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
 
       schema =
         [
-          path: [:input],
           keys: [:title, :comments]
         ]
 

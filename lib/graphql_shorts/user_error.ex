@@ -69,24 +69,21 @@ defmodule GraphQLShorts.UserError do
       ...> })
       %{message: "cannot be blank", field: ["input", "email"]}
   """
-  @spec to_jsonable_map(data :: map()) :: map()
-  @spec to_jsonable_map(data :: map(), opts :: keyword()) :: map()
-  def to_jsonable_map(%{message: message, field: field} = data, opts \\ [])
-      when is_struct(data, __MODULE__) do
+  @spec to_jsonable_map(data :: t() | map()) :: map()
+  @spec to_jsonable_map(data :: t() | map(), opts :: keyword()) :: map()
+  def to_jsonable_map(%{message: message, field: field} = _data, opts \\ []) do
     %{
       message: message,
-      field: encode_field(field, opts)
+      field: field |> List.wrap() |> encode_json_strings(opts)
     }
   end
 
-  defp encode_field(field, opts) do
-    field = List.wrap(field)
-
-    unless Enum.any?(field) and Enum.all?(field, &is_binary/1) do
+  defp encode_json_strings(list, opts) do
+    unless Enum.any?(list) and Enum.all?(list, &is_binary/1) do
       raise ArgumentError,
-            "Expected field to be a string or a list of strings, got: #{inspect(field)}"
+            "Expected field to be a string or a list of strings, got: #{inspect(list)}"
     end
 
-    GraphQLShorts.Encoder.to_json(field, opts)
+    GraphQLShorts.Encoder.to_json(list, opts)
   end
 end

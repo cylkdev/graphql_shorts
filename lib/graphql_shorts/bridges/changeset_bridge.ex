@@ -7,7 +7,7 @@ if Code.ensure_loaded?(Ecto) do
     """
     alias GraphQLShorts.UserError
 
-    @default_path [:input]
+    @logger_prefix "GraphQLShorts.Bridges.ChangesetBridge"
 
     @doc false
     @spec errors_on_changeset(changeset :: Ecto.Changeset.t()) :: map()
@@ -24,17 +24,6 @@ if Code.ensure_loaded?(Ecto) do
     Converts any changeset error that exists in the arguments to a
     `GraphQLShorts.UserError` struct based on the schema.
     """
-    @spec convert_to_error_message(
-            changeset_or_map :: Ecto.Changeset.t() | map(),
-            args :: map(),
-            schema_opts :: map() | keyword()
-          ) :: list(GraphQLShorts.UserError.t())
-    @spec convert_to_error_message(
-            changeset_or_map :: Ecto.Changeset.t() | map(),
-            args :: map(),
-            schema_opts :: map() | keyword(),
-            opts :: keyword()
-          ) :: list(GraphQLShorts.UserError.t())
     def convert_to_error_message(changeset, args, schema_opts, opts \\ [])
 
     def convert_to_error_message(changeset, args, schema_opts, opts)
@@ -44,14 +33,10 @@ if Code.ensure_loaded?(Ecto) do
       |> convert_to_error_message(args, schema_opts, opts)
     end
 
-    def convert_to_error_message(errors, args, schema_opts, _opts) do
-      path = schema_opts[:path] || @default_path
-
-      input = get_in(args, path) || %{}
-
+    def convert_to_error_message(errors, %{input: input}, schema_opts, _opts) do
       errors
       |> Map.to_list()
-      |> recurse_build(input, schema_opts[:keys] || [], path, [])
+      |> recurse_build(input, schema_opts[:keys] || [], [:input], [])
       |> Enum.reverse()
     end
 

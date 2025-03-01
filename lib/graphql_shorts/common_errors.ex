@@ -1,7 +1,6 @@
 defmodule GraphQLShorts.CommonErrors do
   @moduledoc """
-  `GraphQLShorts.CommonErrors` focuses on standardizing the error handling
-  behaviour in your application.
+
   """
 
   @type graphql_error_message :: GraphQLShorts.TopLevelError.t() | GraphQLShorts.UserError.t()
@@ -33,8 +32,7 @@ defmodule GraphQLShorts.CommonErrors do
             extensions: %{
               id: 1,
               documentation: "http://api.docs.com"
-            },
-            field: nil
+            }
           }
         ]
       }
