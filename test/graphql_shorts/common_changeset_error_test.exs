@@ -63,16 +63,14 @@ defmodule GraphQLShorts.CommonChangesetErrorTest do
                errors: [title: {"can't be blank", [validation: :required]}]
              } = changeset
 
-      arguments =
+      input =
         %{
-          input: %{
-            title: "",
-            comments: [
-              %{
-                body: ""
-              }
-            ]
-          }
+          title: "",
+          comments: [
+            %{
+              body: ""
+            }
+          ]
         }
 
       schema =
@@ -106,7 +104,7 @@ defmodule GraphQLShorts.CommonChangesetErrorTest do
                  message: "can't be blank",
                  field: [:input, :comments, :body]
                }
-             ] = CommonChangesetError.translate_changeset_errors(changeset, arguments, schema)
+             ] = CommonChangesetError.translate_changeset_errors(changeset, input, schema)
     end
 
     test "returns users errors with keyword-list schema" do
@@ -118,16 +116,14 @@ defmodule GraphQLShorts.CommonChangesetErrorTest do
           ]
         }
 
-      arguments =
+      input =
         %{
-          input: %{
-            title: "",
-            comments: [
-              %{
-                body: ""
-              }
-            ]
-          }
+          title: "",
+          comments: [
+            %{
+              body: ""
+            }
+          ]
         }
 
       schema =
@@ -161,13 +157,13 @@ defmodule GraphQLShorts.CommonChangesetErrorTest do
                  message: "can't be blank",
                  field: [:input, :comments, :body]
                }
-             ] = CommonChangesetError.translate_changeset_errors(errors, arguments, schema)
+             ] = CommonChangesetError.translate_changeset_errors(errors, input, schema)
     end
 
     test "returns users errors with list of atoms schema" do
       errors = %{title: ["can't be blank"]}
 
-      arguments = %{input: %{title: ""}}
+      input = %{title: ""}
 
       schema = [
         keys: [:title]
@@ -178,7 +174,7 @@ defmodule GraphQLShorts.CommonChangesetErrorTest do
                  message: "can't be blank",
                  field: [:input, :title]
                }
-             ] = CommonChangesetError.translate_changeset_errors(errors, arguments, schema)
+             ] = CommonChangesetError.translate_changeset_errors(errors, input, schema)
     end
 
     test "returns users errors with schema that has atoms and keyword lists" do
@@ -190,16 +186,14 @@ defmodule GraphQLShorts.CommonChangesetErrorTest do
           ]
         }
 
-      arguments =
+      input =
         %{
-          input: %{
-            title: "",
-            comments: [
-              %{
-                body: ""
-              }
-            ]
-          }
+          title: "",
+          comments: [
+            %{
+              body: ""
+            }
+          ]
         }
 
       schema =
@@ -229,7 +223,7 @@ defmodule GraphQLShorts.CommonChangesetErrorTest do
                  message: "can't be blank",
                  field: [:input, :comments, :body]
                }
-             ] = CommonChangesetError.translate_changeset_errors(errors, arguments, schema)
+             ] = CommonChangesetError.translate_changeset_errors(errors, input, schema)
     end
 
     test "does not return users errors for nested fields with list of atoms schema" do
@@ -247,12 +241,10 @@ defmodule GraphQLShorts.CommonChangesetErrorTest do
                    ]
                  },
                  %{
-                   input: %{
-                     title: "",
-                     comments: [
-                       %{body: ""}
-                     ]
-                   }
+                   title: "",
+                   comments: [
+                     %{body: ""}
+                   ]
                  },
                  keys: [:title, :comments]
                )

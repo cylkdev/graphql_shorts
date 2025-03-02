@@ -21,16 +21,16 @@ if Code.ensure_loaded?(Ecto) do
     Converts any changeset error that exists in the arguments to a
     `GraphQLShorts.UserError` struct based on the schema.
     """
-    def translate_changeset_errors(changeset, args, schema_opts, opts \\ [])
+    def translate_changeset_errors(changeset, input, schema_opts, opts \\ [])
 
-    def translate_changeset_errors(changeset, args, schema_opts, opts)
+    def translate_changeset_errors(changeset, input, schema_opts, opts)
         when is_struct(changeset, Ecto.Changeset) do
       changeset
       |> errors_on_changeset()
-      |> translate_changeset_errors(args, schema_opts, opts)
+      |> translate_changeset_errors(input, schema_opts, opts)
     end
 
-    def translate_changeset_errors(errors, %{input: input}, schema_opts, _opts) do
+    def translate_changeset_errors(errors, input, schema_opts, _opts) do
       errors
       |> Map.to_list()
       |> recurse_build(input, schema_opts[:keys] || [], [:input], [])
