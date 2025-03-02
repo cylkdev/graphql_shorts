@@ -1,4 +1,4 @@
-# GraphQL Error Handling
+# Introduction to GraphQL Error Handling
 
 GraphQL error handling is a fundamental aspect of
 building reliable APIs. In this guide we will explore

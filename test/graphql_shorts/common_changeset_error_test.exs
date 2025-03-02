@@ -1,11 +1,11 @@
-defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
+defmodule GraphQLShorts.CommonChangesetErrorTest do
   use ExUnit.Case, async: true
-  doctest GraphQLShorts.Bridges.ChangesetBridge
+  doctest GraphQLShorts.CommonChangesetError
 
   alias Ecto.Changeset
 
   alias GraphQLShorts.{
-    Bridges.ChangesetBridge,
+    CommonChangesetError,
     Support.Ecto.Schemas
   }
 
@@ -38,11 +38,11 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
                comments: [
                  %{body: ["can't be blank"]}
                ]
-             } = ChangesetBridge.errors_on_changeset(changeset)
+             } = CommonChangesetError.errors_on_changeset(changeset)
     end
   end
 
-  describe "&convert_to_error_message/3 " do
+  describe "&translate_changeset_errors/3 " do
     test "returns expected user errors given changeset" do
       changeset =
         %Schemas.Post{}
@@ -80,16 +80,16 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
           keys: [
             title: [
               input_key: :title,
-              resolve: fn message, field -> {message, field} end,
+              resolve: &Function.identity/1,
               keys: []
             ],
             comments: [
               input_key: :comments,
-              resolve: fn message, field -> {message, field} end,
+              resolve: &Function.identity/1,
               keys: [
                 body: [
                   input_key: :body,
-                  resolve: fn message, field -> {message, field} end,
+                  resolve: &Function.identity/1,
                   keys: []
                 ]
               ]
@@ -106,7 +106,7 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
                  message: "can't be blank",
                  field: [:input, :comments, :body]
                }
-             ] = ChangesetBridge.convert_to_error_message(changeset, arguments, schema)
+             ] = CommonChangesetError.translate_changeset_errors(changeset, arguments, schema)
     end
 
     test "returns users errors with keyword-list schema" do
@@ -135,16 +135,16 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
           keys: [
             title: [
               input_key: :title,
-              resolve: fn message, field -> {message, field} end,
+              resolve: &Function.identity/1,
               keys: []
             ],
             comments: [
               input_key: :comments,
-              resolve: fn message, field -> {message, field} end,
+              resolve: &Function.identity/1,
               keys: [
                 body: [
                   input_key: :body,
-                  resolve: fn message, field -> {message, field} end,
+                  resolve: &Function.identity/1,
                   keys: []
                 ]
               ]
@@ -161,7 +161,7 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
                  message: "can't be blank",
                  field: [:input, :comments, :body]
                }
-             ] = ChangesetBridge.convert_to_error_message(errors, arguments, schema)
+             ] = CommonChangesetError.translate_changeset_errors(errors, arguments, schema)
     end
 
     test "returns users errors with list of atoms schema" do
@@ -178,7 +178,7 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
                  message: "can't be blank",
                  field: [:input, :title]
                }
-             ] = ChangesetBridge.convert_to_error_message(errors, arguments, schema)
+             ] = CommonChangesetError.translate_changeset_errors(errors, arguments, schema)
     end
 
     test "returns users errors with schema that has atoms and keyword lists" do
@@ -208,11 +208,11 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
             :title,
             comments: [
               input_key: :comments,
-              resolve: fn message, field -> {message, field} end,
+              resolve: &Function.identity/1,
               keys: [
                 body: [
                   input_key: :body,
-                  resolve: fn message, field -> {message, field} end,
+                  resolve: &Function.identity/1,
                   keys: []
                 ]
               ]
@@ -229,41 +229,33 @@ defmodule GraphQLShorts.Bridges.ChangesetBridgeTest do
                  message: "can't be blank",
                  field: [:input, :comments, :body]
                }
-             ] = ChangesetBridge.convert_to_error_message(errors, arguments, schema)
+             ] = CommonChangesetError.translate_changeset_errors(errors, arguments, schema)
     end
 
     test "does not return users errors for nested fields with list of atoms schema" do
-      errors =
-        %{
-          title: ["can't be blank"],
-          comments: [
-            %{body: ["can't be blank"]}
-          ]
-        }
-
-      arguments =
-        %{
-          input: %{
-            title: "",
-            comments: [
-              %{
-                body: ""
-              }
-            ]
-          }
-        }
-
-      schema =
-        [
-          keys: [:title, :comments]
-        ]
-
       assert [
                %GraphQLShorts.UserError{
                  message: "can't be blank",
                  field: [:input, :title]
                }
-             ] = ChangesetBridge.convert_to_error_message(errors, arguments, schema)
+             ] =
+               CommonChangesetError.translate_changeset_errors(
+                 %{
+                   title: ["can't be blank"],
+                   comments: [
+                     %{body: ["can't be blank"]}
+                   ]
+                 },
+                 %{
+                   input: %{
+                     title: "",
+                     comments: [
+                       %{body: ""}
+                     ]
+                   }
+                 },
+                 keys: [:title, :comments]
+               )
     end
   end
 end

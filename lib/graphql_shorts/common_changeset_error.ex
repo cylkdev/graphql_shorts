@@ -1,13 +1,10 @@
 if Code.ensure_loaded?(Ecto) do
-  defmodule GraphQLShorts.Bridges.ChangesetBridge do
+  defmodule GraphQLShorts.CommonChangesetError do
     @moduledoc """
-    `GraphQLShorts.Bridges.ChangesetBridge` provides an API that
-    allows to you map changeset errors to arguments and converts them
-    into user errors based on a schema.
+    `GraphQLShorts.CommonChangesetError` maps changeset errors
+    to user input based on a keyword-list schema.
     """
     alias GraphQLShorts.UserError
-
-    @logger_prefix "GraphQLShorts.Bridges.ChangesetBridge"
 
     @doc false
     @spec errors_on_changeset(changeset :: Ecto.Changeset.t()) :: map()
@@ -24,16 +21,16 @@ if Code.ensure_loaded?(Ecto) do
     Converts any changeset error that exists in the arguments to a
     `GraphQLShorts.UserError` struct based on the schema.
     """
-    def convert_to_error_message(changeset, args, schema_opts, opts \\ [])
+    def translate_changeset_errors(changeset, args, schema_opts, opts \\ [])
 
-    def convert_to_error_message(changeset, args, schema_opts, opts)
+    def translate_changeset_errors(changeset, args, schema_opts, opts)
         when is_struct(changeset, Ecto.Changeset) do
       changeset
       |> errors_on_changeset()
-      |> convert_to_error_message(args, schema_opts, opts)
+      |> translate_changeset_errors(args, schema_opts, opts)
     end
 
-    def convert_to_error_message(errors, %{input: input}, schema_opts, _opts) do
+    def translate_changeset_errors(errors, %{input: input}, schema_opts, _opts) do
       errors
       |> Map.to_list()
       |> recurse_build(input, schema_opts[:keys] || [], [:input], [])
@@ -65,7 +62,7 @@ if Code.ensure_loaded?(Ecto) do
         {:error, :not_found} ->
           acc
 
-        schema_opts ->
+        {:ok, schema_opts} ->
           schema_opts = schema_opts || []
 
           input_key = schema_opts[:input_key] || error_key
@@ -90,7 +87,7 @@ if Code.ensure_loaded?(Ecto) do
         {:error, :not_found} ->
           acc
 
-        schema_opts ->
+        {:ok, schema_opts} ->
           schema_opts = schema_opts || []
 
           input_key = schema_opts[:input_key] || error_key
@@ -101,7 +98,7 @@ if Code.ensure_loaded?(Ecto) do
             if Map.has_key?(input, input_key) do
               field = Enum.reverse([input_key | path])
 
-              {message, field} = resolve_msg_field(message, field, schema_opts)
+              message = resolve(message, schema_opts)
 
               user_error = UserError.create(message: message, field: field)
 
@@ -110,40 +107,6 @@ if Code.ensure_loaded?(Ecto) do
               acc
             end
           end)
-      end
-    end
-
-    defp resolve_msg_field(message, field, schema_opts) do
-      case schema_opts[:resolve] do
-        nil ->
-          {message, field}
-
-        fun ->
-          result =
-            if is_function(fun, 2) do
-              fun.(message, field)
-            else
-              raise "Expected a 2-arity function, got: #{inspect(fun)}"
-            end
-
-          {message, field} =
-            case result do
-              {message, field} ->
-                {message, field}
-
-              term ->
-                raise "Expected resolve function to return {message, field}, got: #{inspect(term)}"
-            end
-
-          unless is_binary(message) do
-            raise "Expected message to be a string, got: #{inspect(message)}"
-          end
-
-          unless Enum.all?(field, &is_atom/1) do
-            raise "Expected field to be a list of atoms, got: #{inspect(field)}"
-          end
-
-          {message, field}
       end
     end
 
@@ -156,9 +119,22 @@ if Code.ensure_loaded?(Ecto) do
         end)
 
       case res do
-        {^key, schema_opts} -> schema_opts
-        ^key -> nil
+        {^key, schema_opts} -> {:ok, schema_opts}
+        ^key -> {:ok, []}
         nil -> {:error, :not_found}
+      end
+    end
+
+    defp resolve(message, schema_opts) do
+      case schema_opts[:resolve] do
+        nil ->
+          message
+
+        fun ->
+          case fun.(message) do
+            message when is_binary(message) -> message
+            term -> raise "Expected a string, got: #{inspect(term)}"
+          end
       end
     end
   end

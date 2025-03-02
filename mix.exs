@@ -72,7 +72,6 @@ defmodule GraphQLShorts.MixProject do
       {:jason, "~> 1.0", optional: true},
       {:absinthe, "~> 1.0", optional: true},
       {:ecto, "~> 3.0", optional: true},
-
       {:error_message, "~> 0.3", optional: true}
     ]
   end
@@ -97,12 +96,25 @@ defmodule GraphQLShorts.MixProject do
       extras: extras(),
       groups_for_extras: groups_for_extras(),
       groups_for_docs: [
-        group_for_function("Comparison Engine API")
+        group_for_function("Absinthe API"),
+        group_for_function("Error Handling API"),
+        group_for_function("Utility API")
       ],
       groups_for_modules: [
-        "ComparisonEngine API": [
-          GraphQLShorts.ComparisonEngine,
-          GraphQLShorts.CommonComparison
+        "Absinthe API": [
+          GraphQLShorts.Absinthe.Middleware,
+          GraphQLShorts.Absinthe.ResolutionHelpers
+        ],
+        "Error Handling API": [
+          GraphQLShorts.CommonErrorHandler,
+          GraphQLShorts.CommonChangesetError,
+          GraphQLShorts.CommonErrorMessage,
+          GraphQLShorts.TopLevelError,
+          GraphQLShorts.UserError
+        ],
+        "Utility API": [
+          GraphQLShorts.Serializer,
+          GraphQLShorts.Encoder
         ]
       ]
     ]
@@ -110,7 +122,7 @@ defmodule GraphQLShorts.MixProject do
 
   defp extras do
     [
-      # "guides/howtos/example.md",
+      "guides/howtos/Introduction to GraphQL Error Handling.md",
       "CHANGELOG.md": [],
       "LICENSE.txt": [title: "License"],
       "README.md": [title: "Readme"]
