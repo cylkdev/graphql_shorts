@@ -1,6 +1,6 @@
 defmodule GraphQLShorts.Encoder do
   @moduledoc """
-  JSON Encoder
+  JSON Encoder API
   """
 
   @doc """

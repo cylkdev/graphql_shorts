@@ -1,6 +1,6 @@
 defmodule GraphQLShorts.TopLevelError do
   @moduledoc """
-  TopLevel Error API.
+  # GraphQLShorts.TopLevelError
   """
   alias GraphQLShorts.Serializer
 

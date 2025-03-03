@@ -1,310 +1,310 @@
-if Code.ensure_loaded?(ErrorMessage) do
-  defmodule GraphQLShorts.CommonErrorMessage do
-    @moduledoc """
-    # `GraphQLShorts.CommonErrorMessage`
+defmodule GraphQLShorts.CommonErrorMessage do
+  @moduledoc """
+  # `GraphQLShorts.CommonErrorMessage`
 
-    `GraphQLShorts.CommonErrorMessage` API simplifies error code
-    translation by mapping HTTP status codes to GraphQL error types. This API
-    supports a small subset of HTTP status codes relevant to create, read, update,
-    and delete operations, reducing the error handling complexity for clients. It
-    allows you to configure detailed error messages without manually determining
-    the appropriate GraphQL error type.
-    """
-    alias GraphQLShorts.{
-      TopLevelError,
-      UserError
-    }
+  `GraphQLShorts.CommonErrorMessage` API simplifies error code
+  translation by mapping HTTP status codes to GraphQL error types. This API
+  supports a small subset of HTTP status codes relevant to create, read, update,
+  and delete operations, reducing the error handling complexity for clients. It
+  allows you to configure detailed error messages without manually determining
+  the appropriate GraphQL error type.
+  """
+  alias GraphQLShorts.{
+    TopLevelError,
+    UserError
+  }
 
-    @type top_level_reason_atom ::
-            :internal_service_error
-            | :service_unavailable
-            | :too_many_requests
-            | :unauthorized
+  @type error_map :: %{code: atom(), message: binary(), details: nil | map()}
+  @type error_maps :: list(error_map())
+  @type operation :: :mutation | :query | :subscription
+  @type opts :: keyword()
 
-    @type user_error_reason_atom ::
-            :bad_request
-            | :conflict
-            | :forbidden
-            | :gone
-            | :not_found
-            | :precondition_failed
-            | :unprocessable_entity
+  @type top_level_error :: GraphQLShorts.TopLevelError.t()
+  @type user_error :: GraphQLShorts.UserError.t()
 
-    @logger_prefix "GraphQLShorts.CommonErrorMessage"
+  @type top_level_reason_atom ::
+          :internal_service_error
+          | :service_unavailable
+          | :too_many_requests
+          | :unauthorized
 
-    # Mutation Error Codes
+  @type user_error_reason_atom ::
+          :bad_request
+          | :conflict
+          | :forbidden
+          | :gone
+          | :not_found
+          | :precondition_failed
+          | :unprocessable_entity
 
-    @mutation_top_level_error_codes ~w(
-      internal_server_error
-      service_unavailable
-      too_many_requests
-      unauthorized
-    )a
+  @logger_prefix "GraphQLShorts.CommonErrorMessage"
 
-    @mutation_user_error_codes ~w(
-      bad_request
-      conflict
-      forbidden
-      gone
-      not_found
-      precondition_failed
-      unprocessable_entity
-    )a
+  # Mutation Error Codes
 
-    # Query Error Codes
+  @mutation_top_level_error_codes ~w(
+    internal_server_error
+    service_unavailable
+    too_many_requests
+    unauthorized
+  )a
 
-    @query_top_level_error_codes ~w(
-      internal_server_error
-      service_unavailable
-      too_many_requests
-      unauthorized
-    )a
+  @mutation_user_error_codes ~w(
+    bad_request
+    conflict
+    forbidden
+    gone
+    not_found
+    precondition_failed
+    unprocessable_entity
+  )a
 
-    @query_field_specific_error_codes ~w(
-      conflict
-      forbidden
-      gone
-      not_found
-      unprocessable_entity
-    )a
+  # Query Error Codes
 
-    @doc """
-    Converts an `ErrorMessage` struct to a `GraphQLShorts.TopLevelError`
-    or `GraphQLShorts.UserError` struct.
+  @query_top_level_error_codes ~w(
+    internal_server_error
+    service_unavailable
+    too_many_requests
+    unauthorized
+  )a
 
-    The `operation` can be one of:
+  @query_field_specific_error_codes ~w(
+    conflict
+    forbidden
+    gone
+    not_found
+    unprocessable_entity
+  )a
 
-      * `:mutation`
-      * `:query`
+  @fallback_top_level_error TopLevelError.create(
+                              code: :internal_server_error,
+                              message: "Looks like something unexpected went wrong.",
+                              extensions: %{}
+                            )
 
-    Note: Subscriptions are not yet supported.
+  @doc """
+  Converts an `ErrorMessage` struct to a `GraphQLShorts.TopLevelError`
+  or `GraphQLShorts.UserError` struct.
 
-    This function maps HTTP status codes to a GraphQL error type based
-    on the operation type and whether the operation is creating,
-    reading, updating, or deleting a resource.
+  The `operation` can be one of:
 
-    ## Mutation Error Codes
+    * `:mutation`
+    * `:query`
 
-    These codes cover data modification operations (e.g. creating,
-    updating, or deleting records) and typically result from invalid
-    input or conflicting state.
+  Note: Subscriptions are not yet supported.
 
-      * `:bad_request` (User Error) - The request is malformed or structurally invalid
-        (e.g. missing required fields, invalid JSON, unsupported enum value).
+  This function maps HTTP status codes to a GraphQL error type based
+  on the operation type and whether the operation is creating,
+  reading, updating, or deleting a resource.
 
-      * `:conflict` (User Error) - The request failed due to a conflict with existing
-        data (e.g. trying to create a user with an email that already exists).
+  ## Mutation Error Codes
 
-      * `:forbidden` (User Error) - The user is authenticated but lacks permission to
-        perform this action (e.g. attempting to delete another user’s post without
-        admin rights).
+  These codes cover data modification operations (e.g. creating,
+  updating, or deleting records) and typically result from invalid
+  input or conflicting state.
 
-      * `:gone` (User Error) - The requested resource was explicitly deleted and is
-        no longer retrievable (e.g. trying to access a soft-deleted order).
+    * `:bad_request` (User Error) - The request is malformed or structurally invalid
+      (e.g. missing required fields, invalid JSON, unsupported enum value).
 
-      * `:internal_server_error` (Top-Level Error) - An unexpected server-side error
-        occurred (e.g. unhandled exception, dependency failure).
+    * `:conflict` (User Error) - The request failed due to a conflict with existing
+      data (e.g. trying to create a user with an email that already exists).
 
-      * `:not_found` (User Error) - The requested resource does not exist (e.g.,
-        attempting to update a record with an incorrect ID). GraphQL APIs may choose
-        to return `nil` for missing resources instead of explicitly throwing this
-        error.
+    * `:forbidden` (User Error) - The user is authenticated but lacks permission to
+      perform this action (e.g. attempting to delete another user’s post without
+      admin rights).
 
-      * `:precondition_failed` (User Error) - A conditional update or optimistic
-        locking check failed (e.g., trying to update a resource with an outdated
-        version number).
+    * `:gone` (User Error) - The requested resource was explicitly deleted and is
+      no longer retrievable (e.g. trying to access a soft-deleted order).
 
-      * `:service_unavailable` (Top-Level Error) - The server is temporarily down or
-        overloaded (e.g., undergoing maintenance, failing upstream service).
+    * `:internal_server_error` (Top-Level Error) - An unexpected server-side error
+      occurred (e.g. unhandled exception, dependency failure).
 
-      * `:too_many_requests` (Top-Level Error) - The user has exceeded API rate
-        limits (e.g., making too many API calls in a short time). If rate limits apply
-        per-user, this could be considered a user error, but if system-wide, it
-        remains a top-level error.
+    * `:not_found` (User Error) - The requested resource does not exist (e.g.,
+      attempting to update a record with an incorrect ID). GraphQL APIs may choose
+      to return `nil` for missing resources instead of explicitly throwing this
+      error.
 
-      * `:unauthorized` (Top-Level Error) - The user failed authentication (e.g.
-        missing or invalid API token).
+    * `:precondition_failed` (User Error) - A conditional update or optimistic
+      locking check failed (e.g., trying to update a resource with an outdated
+      version number).
 
-      * `:unprocessable_entity` (User Error) – The input violates business rules
-        (e.g. weak password, invalid email format, age below minimum allowed).
+    * `:service_unavailable` (Top-Level Error) - The server is temporarily down or
+      overloaded (e.g., undergoing maintenance, failing upstream service).
 
-    ## Query Error Codes
+    * `:too_many_requests` (Top-Level Error) - The user has exceeded API rate
+      limits (e.g., making too many API calls in a short time). If rate limits apply
+      per-user, this could be considered a user error, but if system-wide, it
+      remains a top-level error.
 
-    These codes cover client requests for invalid or unavailable data. Unlike
-    mutations, queries do not result in user errors and only return top-level
-    errors.
+    * `:unauthorized` (Top-Level Error) - The user failed authentication (e.g.
+      missing or invalid API token).
 
-      * `:conflict` (Field-Specific Error) - The request failed due to conflicts with
-        existing data (e.g. trying to create a user with a duplicate email).
+    * `:unprocessable_entity` (User Error) – The input violates business rules
+      (e.g. weak password, invalid email format, age below minimum allowed).
 
-      * `:forbidden` (Field-Specific Error) - The user is authenticated but lacks
-        permission to access certain fields or resources (e.g., querying restricted
-        user details without admin rights).
+  ## Query Error Codes
 
-      * `:gone` (Field-Specific Error) - The resource was explicitly deleted and
-        cannot be retrieved again.
+  These codes cover client requests for invalid or unavailable data. Unlike
+  mutations, queries do not result in user errors and only return top-level
+  errors.
 
-      * `:internal_server_error` (Top-Level Error) - A server-side failure occurred
-        during query execution.
+    * `:conflict` (Field-Specific Error) - The request failed due to conflicts with
+      existing data (e.g. trying to create a user with a duplicate email).
 
-      * `:not_found` (Field-Specific Error) - The requested resource does not exist
-        (e.g., looking up a non-existent record by ID). GraphQL APIs may return `null`
-        instead of throwing this error.
+    * `:forbidden` (Field-Specific Error) - The user is authenticated but lacks
+      permission to access certain fields or resources (e.g., querying restricted
+      user details without admin rights).
 
-      * `:service_unavailable` (Top-Level Error) - The server is temporarily down or
-        under heavy load.
+    * `:gone` (Field-Specific Error) - The resource was explicitly deleted and
+      cannot be retrieved again.
 
-      * `:too_many_requests` (Top-Level Error) - The client has exceeded API request
-        limits.
+    * `:internal_server_error` (Top-Level Error) - A server-side failure occurred
+      during query execution.
 
-      * `:unauthorized` (Top-Level Error) - Authentication failure prevents query
-        execution.
+    * `:not_found` (Field-Specific Error) - The requested resource does not exist
+      (e.g., looking up a non-existent record by ID). GraphQL APIs may return `null`
+      instead of throwing this error.
 
-      * `:unprocessable_entity` (Field-Specific Error) – The query contains valid
-        syntax but invalid input values (e.g. filtering with an invalid date range).
+    * `:service_unavailable` (Top-Level Error) - The server is temporarily down or
+      under heavy load.
 
-    ## Parameters
+    * `:too_many_requests` (Top-Level Error) - The client has exceeded API request
+      limits.
 
-      * `:code` - Sets the code on the top-level error struct otherwise
-        defaults to the `code` argument. Can be a atom or string.
+    * `:unauthorized` (Top-Level Error) - Authentication failure prevents query
+      execution.
 
-      * `:extensions` - A map of extra information to add to a top-level
-        error message.
+    * `:unprocessable_entity` (Field-Specific Error) – The query contains valid
+      syntax but invalid input values (e.g. filtering with an invalid date range).
 
-      * `:field` - Sets the path to the field that caused the error.
-        Must be a list of strings.
+  ### Options
 
-    ### Examples
+    * `:resolve`
 
-        iex> GraphQLShorts.CommonErrorMessage.translate_error_message(
-        ...>   %ErrorMessage{
-        ...>     code: :forbidden,
-        ...>     message: "You do not have permission to access this resource.",
-        ...>     details: %{extra: "information"}
-        ...>   },
-        ...>  :mutation,
-        ...>   %{field: [:input, :id]}
-        ...> )
-        [
-          %GraphQLShorts.UserError{
-            field: [:input, :id],
-            message: "You do not have permission to access this resource."
-          }
-        ]
-    """
-    def translate_error_message(errors, operation, opts \\ [])
+  ### Examples
 
-    def translate_error_message(errors, operation, opts) when is_list(errors) do
-      Enum.flat_map(errors, &translate_error_message(&1, operation, opts))
+      iex> GraphQLShorts.CommonErrorMessage.convert_to_error_message(
+      ...>   %ErrorMessage{
+      ...>     code: :forbidden,
+      ...>     message: "You do not have permission to access this resource.",
+      ...>     details: %{extra: "information"}
+      ...>   },
+      ...>  :mutation,
+      ...>   %{field: [:input, :id]}
+      ...> )
+      [
+        %GraphQLShorts.UserError{
+          field: [:input, :id],
+          message: "You do not have permission to access this resource."
+        }
+      ]
+  """
+  @spec convert_to_error_message(
+          error :: error_map() | error_maps(),
+          operation :: operation()
+        ) :: list(top_level_error() | user_error())
+  @spec convert_to_error_message(
+          error :: error_map() | error_maps(),
+          operation :: operation(),
+          opts :: opts()
+        ) :: list(top_level_error() | user_error())
+  def convert_to_error_message(error, operation, opts \\ [])
+
+  def convert_to_error_message(errors, operation, opts) when is_list(errors) do
+    Enum.flat_map(errors, &convert_to_error_message(&1, operation, opts))
+  end
+
+  def convert_to_error_message(
+        %{
+          code: code,
+          message: message,
+          details: details
+        },
+        :mutation,
+        opts
+      ) do
+    resolve = opts[:resolve] || (&Function.identity/1)
+
+    cond do
+      Enum.member?(@mutation_top_level_error_codes, code) ->
+        %{
+          code: code,
+          message: message,
+          extensions: details || %{}
+        }
+        |> resolve.()
+        |> TopLevelError.create()
+        |> List.wrap()
+
+      Enum.member?(@mutation_user_error_codes, code) ->
+        %{
+          message: message,
+          field: opts[:field] || ["unknown"]
+        }
+        |> resolve.()
+        |> List.wrap()
+        |> Enum.map(&UserError.create/1)
+
+      true ->
+        GraphQLShorts.Utils.Logger.warning(
+          @logger_prefix,
+          "Unrecognized mutation error code: #{inspect(code)}"
+        )
+
+        [@fallback_top_level_error]
     end
+  end
 
-    def translate_error_message(
-          %{
-            code: code,
-            message: message,
-            details: details
-          },
-          :mutation,
-          opts
-        ) do
-      resolve = opts[:resolve] || (&Function.identity/1)
+  def convert_to_error_message(
+        %{
+          code: code,
+          message: message,
+          details: details
+        },
+        :query,
+        opts
+      ) do
+    resolve = opts[:resolve] || (&Function.identity/1)
 
-      cond do
-        Enum.member?(@mutation_top_level_error_codes, code) ->
-          %{
-            code: code,
-            message: message,
-            extensions: details || %{}
-          }
-          |> resolve.()
-          |> TopLevelError.create()
-          |> List.wrap()
+    cond do
+      Enum.member?(@query_top_level_error_codes, code) ->
+        %{
+          code: code,
+          message: message,
+          extensions: details || %{}
+        }
+        |> resolve.()
+        |> TopLevelError.create()
+        |> List.wrap()
 
-        Enum.member?(@mutation_user_error_codes, code) ->
-          %{
-            message: message,
-            field: opts[:field] || ["unknown"]
-          }
-          |> resolve.()
-          |> List.wrap()
-          |> Enum.map(&UserError.create/1)
+      Enum.member?(@query_field_specific_error_codes, code) ->
+        %{
+          code: code,
+          message: message,
+          extensions: details || %{}
+        }
+        |> resolve.()
+        |> List.wrap()
+        |> Enum.map(&TopLevelError.create/1)
 
-        true ->
-          GraphQLShorts.Utils.Logger.warning(
-            @logger_prefix,
-            "Unrecognized mutation error code: #{inspect(code)}"
-          )
+      true ->
+        GraphQLShorts.Utils.Logger.warning(
+          @logger_prefix,
+          "Unrecognized query error code: #{inspect(code)}"
+        )
 
-          opts
-          |> build_fallback_error_message()
-          |> List.wrap()
-      end
+        [@fallback_top_level_error]
     end
+  end
 
-    def translate_error_message(
-          %{
-            code: code,
-            message: message,
-            details: details
-          },
-          :query,
-          opts
-        ) do
-      resolve = opts[:resolve] || (&Function.identity/1)
-
-      cond do
-        Enum.member?(@query_top_level_error_codes, code) ->
-          %{
-            code: code,
-            message: message,
-            extensions: details || %{}
-          }
-          |> resolve.()
-          |> TopLevelError.create()
-          |> List.wrap()
-
-        Enum.member?(@query_field_specific_error_codes, code) ->
-          %{
-            code: code,
-            message: message,
-            extensions: details || %{}
-          }
-          |> resolve.()
-          |> List.wrap()
-          |> Enum.map(&TopLevelError.create/1)
-
-        true ->
-          GraphQLShorts.Utils.Logger.warning(
-            @logger_prefix,
-            "Unrecognized query error code: #{inspect(code)}"
-          )
-
-          opts
-          |> build_fallback_error_message()
-          |> List.wrap()
-      end
-    end
-
-    def translate_error_message(
-          %{
-            code: _code,
-            message: _message,
-            details: _details
-          },
-          :subscription,
-          _opts
-        ) do
-      raise "Not yet implemented."
-    end
-
-    defp build_fallback_error_message(opts) do
-      params = opts[:fallback_error_message] || %{}
-
-      TopLevelError.create(
-        code: :internal_server_error,
-        message: "Looks like something unexpected went wrong.",
-        extensions: params[:extensions] || %{}
-      )
-    end
+  def convert_to_error_message(
+        %{
+          code: _code,
+          message: _message,
+          details: _details
+        },
+        :subscription,
+        _opts
+      ) do
+    raise "Not yet implemented."
   end
 end

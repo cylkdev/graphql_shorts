@@ -1,6 +1,9 @@
 defmodule GraphQLShorts.Serializer do
   @moduledoc """
-  ...
+  # GraphQLShorts.Serializer
+
+  This API is responsible for ensuring terms are converted to a format
+  that can be represented as a JSON string.
   """
 
   @doc """

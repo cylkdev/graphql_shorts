@@ -2,6 +2,18 @@ if Code.ensure_loaded?(Absinthe) do
   defmodule GraphQLShorts.Absinthe.ResolutionHelpers do
     @moduledoc """
     Helper functions for `Absinthe.Resolution`.
+
+    ## Getting Started
+
+    Add the `absinthe` dependency to `mix.exs`:
+
+    ```elixir
+    def deps do
+      [
+        {:absinthe, "~> 1.7"}
+      ]
+    end
+    ```
     """
 
     @type object_type :: :query | :mutation | :subscription

@@ -1,6 +1,6 @@
 defmodule GraphQLShorts.UserError do
   @moduledoc """
-  User Error API.
+  # GraphQLShorts.UserError
   """
 
   @type t :: %__MODULE__{
