@@ -1,6 +1,6 @@
-defmodule GraphQLShorts.CommonErrorHandlerTest do
+defmodule GraphQLShorts.CommonErrorsTest do
   use ExUnit.Case, async: true
-  doctest GraphQLShorts.CommonErrorHandler
+  doctest GraphQLShorts.CommonErrors
 
   describe "convert_to_error_message" do
     test "handles error response" do
@@ -11,7 +11,7 @@ defmodule GraphQLShorts.CommonErrorHandlerTest do
                  extensions: %{documentation: "https://api.com/docs"}
                }
              ] =
-               GraphQLShorts.CommonErrorHandler.convert_to_error_message(
+               GraphQLShorts.CommonErrors.convert_to_error_message(
                  %{code: :im_a_teapot, message: "i'm a teapot"},
                  {
                    %{code: :im_a_teapot},

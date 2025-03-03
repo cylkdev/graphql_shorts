@@ -123,26 +123,28 @@ if Code.ensure_loaded?(Ecto) do
 
           input
           |> List.wrap()
-          |> Enum.reduce(acc, fn input, acc ->
-            if Map.has_key?(input, input_key) do
-              params = %{
-                message: message,
-                field: Enum.reverse([input_key | path])
-              }
+          |> Enum.reduce(acc, &reduce_user_error(message, &1, input_key, definition, path, &2))
+      end
+    end
 
-              resolution = resolve(params, definition)
+    defp reduce_user_error(message, input, input_key, definition, path, acc) do
+      if Map.has_key?(input, input_key) do
+        params = %{
+          message: message,
+          field: Enum.reverse([input_key | path])
+        }
 
-              user_error =
-                UserError.create(
-                  message: resolution[:message] || params.message,
-                  field: resolution[:field] || params.field
-                )
+        resolution = resolve(params, definition)
 
-              [user_error | acc]
-            else
-              acc
-            end
-          end)
+        user_error =
+          UserError.create(
+            message: resolution[:message] || params.message,
+            field: resolution[:field] || params.field
+          )
+
+        [user_error | acc]
+      else
+        acc
       end
     end
 

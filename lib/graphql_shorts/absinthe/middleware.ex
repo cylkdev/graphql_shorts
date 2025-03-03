@@ -38,7 +38,7 @@ if Code.ensure_loaded?(Absinthe) do
 
       - `GraphQLShorts.UserError` for field-specific failures.
 
-    See `GraphQLShorts.CommonErrorHandler.convert_to_error_message/3` for details on how to structure errors.
+    See `GraphQLShorts.CommonErrors.convert_to_error_message/3` for details on how to structure errors.
 
     ## Example
 

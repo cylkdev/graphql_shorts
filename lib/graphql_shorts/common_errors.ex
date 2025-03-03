@@ -1,8 +1,8 @@
-defmodule GraphQLShorts.CommonErrorHandler do
+defmodule GraphQLShorts.CommonErrors do
   @moduledoc """
-  # GraphQLShorts.CommonErrorHandler
+  # GraphQLShorts.CommonErrors
 
-  `GraphQLShorts.CommonErrorHandler` provides functionality
+  `GraphQLShorts.CommonErrors` provides functionality
   for managing errors in a predictable way.
 
   ## How to Use
@@ -22,7 +22,7 @@ defmodule GraphQLShorts.CommonErrorHandler do
           {:ok, %{user: user}}
 
         {:error, e} ->
-          GraphQLShorts.CommonErrorHandler.convert_to_error_message(e, [
+          GraphQLShorts.CommonErrors.convert_to_error_message(e, [
             {
               %{is_struct: Ecto.Changeset, data: %{is_struct: MyApp.User}},
               fn changeset ->
@@ -46,7 +46,7 @@ defmodule GraphQLShorts.CommonErrorHandler do
   @type condition :: {expression :: term(), fun :: function()}
   @type conditions :: condition() | list(condition())
 
-  @logger_prefix "GraphQLShorts.CommonErrorHandler"
+  @logger_prefix "GraphQLShorts.CommonErrors"
 
   @doc """
   ...
@@ -69,7 +69,7 @@ defmodule GraphQLShorts.CommonErrorHandler do
 
   ### Examples
 
-      iex> GraphQLShorts.CommonErrorHandler.convert_to_error_message(
+      iex> GraphQLShorts.CommonErrors.convert_to_error_message(
       ...>   %{code: :not_found, message: "no records found", details: %{query: MyApp.Schemas.User, params: %{id: 1}}},
       ...>   {
       ...>     %{code: :not_found},
@@ -115,26 +115,10 @@ defmodule GraphQLShorts.CommonErrorHandler do
 
     if passed? do
       if is_list(result) do
-        unless Enum.all?(result, &error_struct?/1) do
-          raise ArgumentError, """
-          Expected a list of `GraphQLShorts.TopLevelError` or `GraphQLShorts.UserError` structs.
-
-          got:
-          #{inspect(result, pretty: true)}
-          """
-        end
-
+        ensure_all_error_structs!(result)
         result
       else
-        unless error_struct?(result) do
-          raise ArgumentError, """
-          Expected a `GraphQLShorts.TopLevelError` or `GraphQLShorts.UserError` struct.
-
-          got:
-          #{inspect(result, pretty: true)}
-          """
-        end
-
+        ensure_error_struct!(result)
         [result]
       end
     else
@@ -152,6 +136,28 @@ defmodule GraphQLShorts.CommonErrorHandler do
       )
 
       [build_fallback_error_message(opts)]
+    end
+  end
+
+  defp ensure_error_struct!(result) do
+    unless error_struct?(result) do
+      raise ArgumentError, """
+      Expected a `GraphQLShorts.TopLevelError` or `GraphQLShorts.UserError` struct.
+
+      got:
+      #{inspect(result, pretty: true)}
+      """
+    end
+  end
+
+  defp ensure_all_error_structs!(result) do
+    unless Enum.all?(result, &error_struct?/1) do
+      raise ArgumentError, """
+      Expected a list of `GraphQLShorts.TopLevelError` or `GraphQLShorts.UserError` structs.
+
+      got:
+      #{inspect(result, pretty: true)}
+      """
     end
   end
 
