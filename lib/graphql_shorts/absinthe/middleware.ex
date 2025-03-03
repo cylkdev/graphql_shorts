@@ -38,7 +38,7 @@ if Code.ensure_loaded?(Absinthe) do
 
       - `GraphQLShorts.UserError` for field-specific failures.
 
-    See `GraphQLShorts.handle_error_response/4` for details on how to structure errors.
+    See `GraphQLShorts.CommonErrors.convert_to_error_message/3` for details on how to structure errors.
 
     ## Example
 
@@ -115,18 +115,18 @@ if Code.ensure_loaded?(Absinthe) do
 
     This function resolves as follows:
 
-    1. **If any `TopLevelError` exists in `:errors`:**
+    1. If any `GraphQLShorts.TopLevelError` exists in `:errors`:
 
       - The `:errors` field on the resolution struct is
-        replaced with only `TopLevelError` structs.
+        replaced with only `GraphQLShorts.TopLevelError` structs.
 
       - `:value` on the resolution struct is set to nil,
         ensuring no data is returned.
 
-      - Any `UserError` structs are ignored, as operation-level
+      - Any `GraphQLShorts.UserError` structs are ignored, as operation-level
         failures prevent field resolution.
 
-    2. **If only `UserError` structs exist in `:errors`:**
+    2. If only `GraphQLShorts.UserError` structs exist in `:errors`:
 
       - The existing data in `:value` on the resolution struct
         is preserved.
@@ -139,7 +139,7 @@ if Code.ensure_loaded?(Absinthe) do
 
       - The `:errors` on the resolution struct field is cleared.
 
-    3. **If no errors exist:**
+    3. If no errors exist:
 
       - The `:success` field on the mutation payload is set to
         `true`, indicating success.
@@ -147,7 +147,7 @@ if Code.ensure_loaded?(Absinthe) do
       - The data in `:value` on the resolution struct remains
         unchanged.
 
-    4. **If an unrecognized error type is found:**
+    4. If an unrecognized error type is found:
 
       - The error is ignored.
 
