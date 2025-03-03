@@ -14,7 +14,7 @@ defmodule GraphQLShorts.CommonErrorHandler do
 
   ```elixir
   defmodule MyAppWeb.UserResolver do
-    alias GraphQLShorts.CommonChangesetError
+    alias GraphQLShorts.CommonChangeset
 
     def create_user(%{input: input} = args, _resolution) do
       case MyApp.create_user(%{email: input.email}) do
@@ -26,7 +26,7 @@ defmodule GraphQLShorts.CommonErrorHandler do
             {
               %{is_struct: Ecto.Changeset, data: %{is_struct: MyApp.User}},
               fn changeset ->
-                CommonChangesetError.convert_to_graphql_user_errors(
+                CommonChangeset.convert_to_graphql_user_errors(
                   changeset,
                   input,
                   keys: [:email]
@@ -103,14 +103,14 @@ defmodule GraphQLShorts.CommonErrorHandler do
         term
       end
 
-    Enum.flat_map(term, &transform_term(&1, conditions, opts))
+    Enum.flat_map(term, &transform_error(&1, conditions, opts))
   end
 
   def convert_to_error_message(term, conditions, opts) do
-    transform_term(term, conditions, opts)
+    transform_error(term, conditions, opts)
   end
 
-  defp transform_term(term, conditions, opts) do
+  defp transform_error(term, conditions, opts) do
     {result, passed?} = Matchbox.transform(term, conditions, opts)
 
     if passed? do

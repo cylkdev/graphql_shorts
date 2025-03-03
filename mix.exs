@@ -107,7 +107,7 @@ defmodule GraphQLShorts.MixProject do
         ],
         "Error Handling API": [
           GraphQLShorts.CommonErrorHandler,
-          GraphQLShorts.CommonChangesetError,
+          GraphQLShorts.CommonChangeset,
           GraphQLShorts.CommonErrorMessage,
           GraphQLShorts.TopLevelError,
           GraphQLShorts.UserError

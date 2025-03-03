@@ -5,74 +5,89 @@ defmodule GraphQLShorts.CommonErrorMessageTest do
   alias GraphQLShorts.CommonErrorMessage
 
   describe "&translate_error_message/3" do
-    test "returns mutation top-level error" do
-      assert %GraphQLShorts.TopLevelError{
-               message: "Service unavailable.",
-               code: :service_unavailable,
-               extensions: %{documentation: "https://api.myapp.com/docs"}
-             } =
+    test "returns expected changes with :resolve option" do
+      assert [
+               %GraphQLShorts.TopLevelError{
+                 message: "changed_message",
+                 code: "CHANGED_CODE",
+                 extensions: %{documentation: "https://api.myapp.com/docs"}
+               }
+             ] =
                CommonErrorMessage.translate_error_message(
+                 %ErrorMessage{
+                   code: :service_unavailable,
+                   message: "Service unavailable, Please try again later.",
+                   details: nil
+                 },
                  :mutation,
-                 %{code: :service_unavailable, message: "Service unavailable."},
-                 %{extensions: %{documentation: "https://api.myapp.com/docs"}}
+                 resolve: fn %{
+                               code: :service_unavailable,
+                               message: "Service unavailable, Please try again later.",
+                               extensions: %{}
+                             } ->
+                   %{
+                     code: "CHANGED_CODE",
+                     message: "changed_message",
+                     extensions: %{documentation: "https://api.myapp.com/docs"}
+                   }
+                 end
+               )
+    end
+
+    test "returns mutation top-level error" do
+      assert [
+               %GraphQLShorts.TopLevelError{
+                 message: "Service unavailable, Please try again later.",
+                 code: :service_unavailable,
+                 extensions: %{extra: "information"}
+               }
+             ] =
+               CommonErrorMessage.translate_error_message(
+                 %ErrorMessage{
+                   code: :service_unavailable,
+                   message: "Service unavailable, Please try again later.",
+                   details: %{extra: "information"}
+                 },
+                 :mutation
                )
     end
 
     test "returns mutation user error" do
-      assert %GraphQLShorts.UserError{
-               field: [:input, :id],
-               message: "You do not have permission to access this resource."
-             } =
+      assert [
+               %GraphQLShorts.UserError{
+                 field: [:input, :id],
+                 message: "You do not have permission to access this resource."
+               }
+             ] =
                CommonErrorMessage.translate_error_message(
-                 :mutation,
-                 %{
+                 %ErrorMessage{
                    code: :forbidden,
-                   message: "You do not have permission to access this resource."
+                   message: "You do not have permission to access this resource.",
+                   details: %{extra: "information"}
                  },
-                 %{
-                   field: [:input, :id],
-                   code: "INSUFFICIENT_PERMISSION",
-                   extensions: %{
-                     id: 1,
-                     documentation: "https://api.myapp.com/docs"
-                   }
-                 }
+                 :mutation,
+                 %{field: [:input, :id]}
                )
     end
 
     test "returns query top-level error" do
-      assert %GraphQLShorts.TopLevelError{
-               message: "Too many requests, Please try again later.",
-               code: :too_many_requests,
-               extensions: extensions
-             } =
+      assert [
+               %GraphQLShorts.TopLevelError{
+                 message: "Too many requests, Please try again later.",
+                 code: :too_many_requests,
+                 extensions: extensions
+               }
+             ] =
                CommonErrorMessage.translate_error_message(
-                 :query,
-                 %{
+                 %ErrorMessage{
                    code: :too_many_requests,
-                   message: "Too many requests, Please try again later."
-                 }
+                   message: "Too many requests, Please try again later.",
+                   details: %{}
+                 },
+                 :query
                )
 
       assert %{} === extensions
-    end
-
-    test "returns query field specific error" do
-      assert %GraphQLShorts.TopLevelError{
-               message: "You do not have permission to access this resource.",
-               code: :forbidden,
-               extensions: extensions
-             } =
-               CommonErrorMessage.translate_error_message(
-                 :query,
-                 %{
-                   code: :forbidden,
-                   message: "You do not have permission to access this resource."
-                 },
-                 %{field: [:input, :id]}
-               )
-
-      assert %{field: [:input, :id]} === extensions
     end
   end
 end

@@ -165,45 +165,69 @@ if Code.ensure_loaded?(ErrorMessage) do
 
     ## Parameters
 
-      * `:code` - Sets the code on the top-level error struct otherwise defaults to
-        the `code` argument. Can be a atom or string.
+      * `:code` - Sets the code on the top-level error struct otherwise
+        defaults to the `code` argument. Can be a atom or string.
 
-      * `:extensions` - A map of extra information to add to a top-level error message.
+      * `:extensions` - A map of extra information to add to a top-level
+        error message.
 
-      * `:field` - Sets the path to the field that caused the error. Must be a list of strings.
+      * `:field` - Sets the path to the field that caused the error.
+        Must be a list of strings.
 
     ### Examples
 
         iex> GraphQLShorts.CommonErrorMessage.translate_error_message(
-        ...>   :mutation,
-        ...>   %{code: :forbidden, message: "You do not have permission to access this resource."},
-        ...>   %{
-        ...>     field: [:input, :id],
-        ...>     code: "INSUFFICIENT_PERMISSION",
-        ...>     extensions: %{
-        ...>       id: 1,
-        ...>       documentation: "https://api.myapp.com/docs"
-        ...>     }
-        ...>   }
+        ...>   %ErrorMessage{
+        ...>     code: :forbidden,
+        ...>     message: "You do not have permission to access this resource.",
+        ...>     details: %{extra: "information"}
+        ...>   },
+        ...>  :mutation,
+        ...>   %{field: [:input, :id]}
         ...> )
-        %GraphQLShorts.UserError{
-          field: [:input, :id],
-          message: "You do not have permission to access this resource."
-        }
+        [
+          %GraphQLShorts.UserError{
+            field: [:input, :id],
+            message: "You do not have permission to access this resource."
+          }
+        ]
     """
-    def translate_error_message(operation, error, params \\ %{}, opts \\ [])
+    def translate_error_message(errors, operation, opts \\ [])
 
-    def translate_error_message(:mutation, %{code: code, message: message}, params, opts) do
+    def translate_error_message(errors, operation, opts) when is_list(errors) do
+      Enum.flat_map(errors, &translate_error_message(&1, operation, opts))
+    end
+
+    def translate_error_message(
+          %{
+            code: code,
+            message: message,
+            details: details
+          },
+          :mutation,
+          opts
+        ) do
+      resolve = opts[:resolve] || (&Function.identity/1)
+
       cond do
         Enum.member?(@mutation_top_level_error_codes, code) ->
-          TopLevelError.create(
-            code: params[:code] || code,
+          %{
+            code: code,
             message: message,
-            extensions: params[:extensions] || %{}
-          )
+            extensions: details || %{}
+          }
+          |> resolve.()
+          |> TopLevelError.create()
+          |> List.wrap()
 
         Enum.member?(@mutation_user_error_codes, code) ->
-          UserError.create(message: message, field: params[:field] || [])
+          %{
+            message: message,
+            field: opts[:field] || ["unknown"]
+          }
+          |> resolve.()
+          |> List.wrap()
+          |> Enum.map(&UserError.create/1)
 
         true ->
           GraphQLShorts.Utils.Logger.warning(
@@ -211,30 +235,43 @@ if Code.ensure_loaded?(ErrorMessage) do
             "Unrecognized mutation error code: #{inspect(code)}"
           )
 
-          build_fallback_error_message(opts)
+          opts
+          |> build_fallback_error_message()
+          |> List.wrap()
       end
     end
 
-    def translate_error_message(:query, %{code: code, message: message}, params, opts) do
+    def translate_error_message(
+          %{
+            code: code,
+            message: message,
+            details: details
+          },
+          :query,
+          opts
+        ) do
+      resolve = opts[:resolve] || (&Function.identity/1)
+
       cond do
         Enum.member?(@query_top_level_error_codes, code) ->
-          TopLevelError.create(
-            code: params[:code] || code,
+          %{
+            code: code,
             message: message,
-            extensions: params[:extensions] || %{}
-          )
+            extensions: details || %{}
+          }
+          |> resolve.()
+          |> TopLevelError.create()
+          |> List.wrap()
 
         Enum.member?(@query_field_specific_error_codes, code) ->
-          extensions =
-            params
-            |> Map.get(:extensions, %{})
-            |> Map.put(:field, params[:field] || [])
-
-          TopLevelError.create(
-            code: params[:code] || code,
+          %{
+            code: code,
             message: message,
-            extensions: extensions
-          )
+            extensions: details || %{}
+          }
+          |> resolve.()
+          |> List.wrap()
+          |> Enum.map(&TopLevelError.create/1)
 
         true ->
           GraphQLShorts.Utils.Logger.warning(
@@ -242,8 +279,22 @@ if Code.ensure_loaded?(ErrorMessage) do
             "Unrecognized query error code: #{inspect(code)}"
           )
 
-          build_fallback_error_message(opts)
+          opts
+          |> build_fallback_error_message()
+          |> List.wrap()
       end
+    end
+
+    def translate_error_message(
+          %{
+            code: _code,
+            message: _message,
+            details: _details
+          },
+          :subscription,
+          _opts
+        ) do
+      raise "Not yet implemented."
     end
 
     defp build_fallback_error_message(opts) do
