@@ -73,7 +73,7 @@ defmodule GraphQLShorts.CommonChangesetTest do
           ]
         }
 
-      schema =
+      definition =
         [
           keys: [
             title: [
@@ -104,10 +104,10 @@ defmodule GraphQLShorts.CommonChangesetTest do
                  message: "can't be blank",
                  field: [:input, :comments, :body]
                }
-             ] = CommonChangeset.translate_changeset_errors(changeset, input, schema)
+             ] = CommonChangeset.translate_changeset_errors(changeset, input, definition)
     end
 
-    test "returns users errors with keyword-list schema" do
+    test "returns users errors with keyword-list definition" do
       errors =
         %{
           title: ["can't be blank"],
@@ -126,7 +126,7 @@ defmodule GraphQLShorts.CommonChangesetTest do
           ]
         }
 
-      schema =
+      definition =
         [
           keys: [
             title: [
@@ -157,15 +157,15 @@ defmodule GraphQLShorts.CommonChangesetTest do
                  message: "can't be blank",
                  field: [:input, :comments, :body]
                }
-             ] = CommonChangeset.translate_changeset_errors(errors, input, schema)
+             ] = CommonChangeset.translate_changeset_errors(errors, input, definition)
     end
 
-    test "returns users errors with list of atoms schema" do
+    test "returns users errors with list of atoms definition" do
       errors = %{title: ["can't be blank"]}
 
       input = %{title: ""}
 
-      schema = [
+      definition = [
         keys: [:title]
       ]
 
@@ -174,10 +174,10 @@ defmodule GraphQLShorts.CommonChangesetTest do
                  message: "can't be blank",
                  field: [:input, :title]
                }
-             ] = CommonChangeset.translate_changeset_errors(errors, input, schema)
+             ] = CommonChangeset.translate_changeset_errors(errors, input, definition)
     end
 
-    test "returns users errors with schema that has atoms and keyword lists" do
+    test "returns users errors with definition that has atoms and keyword lists" do
       errors =
         %{
           title: ["can't be blank"],
@@ -196,7 +196,7 @@ defmodule GraphQLShorts.CommonChangesetTest do
           ]
         }
 
-      schema =
+      definition =
         [
           keys: [
             :title,
@@ -223,10 +223,10 @@ defmodule GraphQLShorts.CommonChangesetTest do
                  message: "can't be blank",
                  field: [:input, :comments, :body]
                }
-             ] = CommonChangeset.translate_changeset_errors(errors, input, schema)
+             ] = CommonChangeset.translate_changeset_errors(errors, input, definition)
     end
 
-    test "does not return users errors for nested fields with list of atoms schema" do
+    test "does not return users errors for nested fields with list of atoms definition" do
       assert [
                %GraphQLShorts.UserError{
                  message: "can't be blank",

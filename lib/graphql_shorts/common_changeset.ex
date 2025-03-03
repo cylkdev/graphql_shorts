@@ -2,7 +2,7 @@ if Code.ensure_loaded?(Ecto) do
   defmodule GraphQLShorts.CommonChangeset do
     @moduledoc """
     `GraphQLShorts.CommonChangeset` maps changeset errors
-    to user input based on a keyword-list schema.
+    to user input based on a definition.
 
     ## Getting Started
 
@@ -21,7 +21,7 @@ if Code.ensure_loaded?(Ecto) do
     @type user_error :: GraphQLShorts.UserError.t()
 
     @type input :: map()
-    @type schema :: map() | keyword()
+    @type definition :: map() | keyword()
     @type opts :: keyword()
 
     @doc false
@@ -37,7 +37,7 @@ if Code.ensure_loaded?(Ecto) do
 
     @doc """
     Converts any changeset error that exists in the arguments
-    to a `GraphQLShorts.UserError` struct based on the schema.
+    to a `GraphQLShorts.UserError` struct based on the definition.
 
     ### Examples
 
@@ -66,104 +66,104 @@ if Code.ensure_loaded?(Ecto) do
     @spec translate_changeset_errors(
             changeset :: map() | Ecto.Changeset.t(),
             input :: input(),
-            schema :: schema()
+            definition :: definition()
           ) :: list(user_error())
     @spec translate_changeset_errors(
             changeset :: map() | Ecto.Changeset.t(),
             input :: input(),
-            schema :: schema(),
+            definition :: definition(),
             opts :: opts()
           ) :: list(user_error())
-    def translate_changeset_errors(changeset, input, schema, opts \\ [])
+    def translate_changeset_errors(changeset, input, definition, opts \\ [])
 
-    def translate_changeset_errors(changesets, input, schema, opts)
+    def translate_changeset_errors(changesets, input, definition, opts)
         when is_list(changesets) do
-      Enum.flat_map(changesets, &translate_changeset_errors(&1, input, schema, opts))
+      Enum.flat_map(changesets, &translate_changeset_errors(&1, input, definition, opts))
     end
 
-    def translate_changeset_errors(changeset, input, schema, opts)
+    def translate_changeset_errors(changeset, input, definition, opts)
         when is_struct(changeset, Ecto.Changeset) do
       changeset
       |> errors_on_changeset()
-      |> translate_changeset_errors(input, schema, opts)
+      |> translate_changeset_errors(input, definition, opts)
     end
 
-    def translate_changeset_errors(errors, input, schema, _opts) do
+    def translate_changeset_errors(errors, input, definition, _opts) do
       errors
       |> Map.to_list()
-      |> recurse_build(input, schema[:keys] || [], [:input], [])
+      |> recurse_build(input, definition[:keys] || [], [:input], [])
       |> Enum.reverse()
     end
 
-    defp recurse_build([], _input, _schema_keys, _path, acc) do
+    defp recurse_build([], _input, _defn_keys, _path, acc) do
       acc
     end
 
-    defp recurse_build([head | tail], input, schema_keys, path, acc) do
-      with acc <- recurse_build(head, input, schema_keys, path, acc) do
-        recurse_build(tail, input, schema_keys, path, acc)
+    defp recurse_build([head | tail], input, defn_keys, path, acc) do
+      with acc <- recurse_build(head, input, defn_keys, path, acc) do
+        recurse_build(tail, input, defn_keys, path, acc)
       end
     end
 
-    defp recurse_build({_error_key, [] = _errors}, _input, _schema_keys, _path, acc) do
+    defp recurse_build({_error_key, [] = _errors}, _input, _defn_keys, _path, acc) do
       acc
     end
 
-    defp recurse_build({error_key, [head | tail]}, input, schema_keys, path, acc) do
-      with acc <- recurse_build({error_key, head}, input, schema_keys, path, acc) do
-        recurse_build({error_key, tail}, input, schema_keys, path, acc)
+    defp recurse_build({error_key, [head | tail]}, input, defn_keys, path, acc) do
+      with acc <- recurse_build({error_key, head}, input, defn_keys, path, acc) do
+        recurse_build({error_key, tail}, input, defn_keys, path, acc)
       end
     end
 
-    defp recurse_build({error_key, errors}, input, schema_keys, path, acc) when is_map(errors) do
-      case find_schema(schema_keys, error_key) do
+    defp recurse_build({error_key, errors}, input, defn_keys, path, acc) when is_map(errors) do
+      case find_definition(defn_keys, error_key) do
         {:error, :not_found} ->
           acc
 
-        {:ok, schema} ->
-          schema = schema || []
+        {:ok, definition} ->
+          definition = definition || []
 
-          input_key = schema[:input_key] || error_key
+          input_key = definition[:input_key] || error_key
 
           if Map.has_key?(input, input_key) do
             input = Map.fetch!(input, input_key)
 
-            schema_keys = schema[:keys] || []
+            defn_keys = definition[:keys] || []
 
             errors
             |> Map.to_list()
-            |> recurse_build(input, schema_keys, [input_key | path], acc)
+            |> recurse_build(input, defn_keys, [input_key | path], acc)
           else
             acc
           end
       end
     end
 
-    defp recurse_build({error_key, message}, input, schema_keys, path, acc)
+    defp recurse_build({error_key, message}, input, defn_keys, path, acc)
          when is_binary(message) do
-      case find_schema(schema_keys, error_key) do
+      case find_definition(defn_keys, error_key) do
         {:error, :not_found} ->
           acc
 
-        {:ok, schema} ->
-          schema = schema || []
+        {:ok, definition} ->
+          definition = definition || []
 
-          input_key = schema[:input_key] || error_key
+          input_key = definition[:input_key] || error_key
 
           input
           |> List.wrap()
-          |> Enum.reduce(acc, &create_user_error(message, &1, input_key, schema, path, &2))
+          |> Enum.reduce(acc, &create_user_error(message, &1, input_key, definition, path, &2))
       end
     end
 
-    defp create_user_error(message, input, input_key, schema, path, acc) do
+    defp create_user_error(message, input, input_key, definition, path, acc) do
       if Map.has_key?(input, input_key) do
         params = %{
           message: message,
           field: Enum.reverse([input_key | path])
         }
 
-        resolution = resolve(params, schema)
+        resolution = resolve(params, definition)
 
         user_error =
           UserError.create(
@@ -177,7 +177,7 @@ if Code.ensure_loaded?(Ecto) do
       end
     end
 
-    defp find_schema(list, key) do
+    defp find_definition(list, key) do
       res =
         Enum.find(list, fn
           ^key -> true
@@ -186,14 +186,14 @@ if Code.ensure_loaded?(Ecto) do
         end)
 
       case res do
-        {^key, schema} -> {:ok, schema}
+        {^key, definition} -> {:ok, definition}
         ^key -> {:ok, []}
         nil -> {:error, :not_found}
       end
     end
 
-    defp resolve(params, schema) do
-      case schema[:resolve] do
+    defp resolve(params, definition) do
+      case definition[:resolve] do
         nil -> %{}
         fun -> fun.(params)
       end

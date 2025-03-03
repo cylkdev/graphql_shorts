@@ -4,7 +4,7 @@ defmodule GraphQLShorts.CommonErrorMessageTest do
 
   alias GraphQLShorts.CommonErrorMessage
 
-  describe "&convert_to_error_message/3" do
+  describe "&translate_error/3" do
     test "returns expected changes with :resolve option" do
       assert [
                %GraphQLShorts.TopLevelError{
@@ -13,7 +13,7 @@ defmodule GraphQLShorts.CommonErrorMessageTest do
                  extensions: %{documentation: "https://api.myapp.com/docs"}
                }
              ] =
-               CommonErrorMessage.convert_to_error_message(
+               CommonErrorMessage.translate_error(
                  %ErrorMessage{
                    code: :service_unavailable,
                    message: "Service unavailable, Please try again later.",
@@ -42,7 +42,7 @@ defmodule GraphQLShorts.CommonErrorMessageTest do
                  extensions: %{extra: "information"}
                }
              ] =
-               CommonErrorMessage.convert_to_error_message(
+               CommonErrorMessage.translate_error(
                  %ErrorMessage{
                    code: :service_unavailable,
                    message: "Service unavailable, Please try again later.",
@@ -59,7 +59,7 @@ defmodule GraphQLShorts.CommonErrorMessageTest do
                  message: "You do not have permission to access this resource."
                }
              ] =
-               CommonErrorMessage.convert_to_error_message(
+               CommonErrorMessage.translate_error(
                  %ErrorMessage{
                    code: :forbidden,
                    message: "You do not have permission to access this resource.",
@@ -78,7 +78,7 @@ defmodule GraphQLShorts.CommonErrorMessageTest do
                  extensions: extensions
                }
              ] =
-               CommonErrorMessage.convert_to_error_message(
+               CommonErrorMessage.translate_error(
                  %ErrorMessage{
                    code: :too_many_requests,
                    message: "Too many requests, Please try again later.",

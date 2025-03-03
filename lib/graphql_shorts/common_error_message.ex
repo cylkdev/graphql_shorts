@@ -182,7 +182,7 @@ defmodule GraphQLShorts.CommonErrorMessage do
 
   ### Examples
 
-      iex> GraphQLShorts.CommonErrorMessage.convert_to_error_message(
+      iex> GraphQLShorts.CommonErrorMessage.translate_error(
       ...>   %ErrorMessage{
       ...>     code: :forbidden,
       ...>     message: "You do not have permission to access this resource.",
@@ -198,22 +198,22 @@ defmodule GraphQLShorts.CommonErrorMessage do
         }
       ]
   """
-  @spec convert_to_error_message(
+  @spec translate_error(
           error :: error_map() | error_maps(),
           operation :: operation()
         ) :: list(top_level_error() | user_error())
-  @spec convert_to_error_message(
+  @spec translate_error(
           error :: error_map() | error_maps(),
           operation :: operation(),
           opts :: opts()
         ) :: list(top_level_error() | user_error())
-  def convert_to_error_message(error, operation, opts \\ [])
+  def translate_error(error, operation, opts \\ [])
 
-  def convert_to_error_message(errors, operation, opts) when is_list(errors) do
-    Enum.flat_map(errors, &convert_to_error_message(&1, operation, opts))
+  def translate_error(errors, operation, opts) when is_list(errors) do
+    Enum.flat_map(errors, &translate_error(&1, operation, opts))
   end
 
-  def convert_to_error_message(
+  def translate_error(
         %{
           code: code,
           message: message,
@@ -254,7 +254,7 @@ defmodule GraphQLShorts.CommonErrorMessage do
     end
   end
 
-  def convert_to_error_message(
+  def translate_error(
         %{
           code: code,
           message: message,
@@ -296,7 +296,7 @@ defmodule GraphQLShorts.CommonErrorMessage do
     end
   end
 
-  def convert_to_error_message(
+  def translate_error(
         %{
           code: _code,
           message: _message,

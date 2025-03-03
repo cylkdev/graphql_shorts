@@ -22,7 +22,7 @@ defmodule GraphQLShorts.CommonErrors do
           {:ok, %{user: user}}
 
         {:error, e} ->
-          GraphQLShorts.CommonErrors.convert_to_error_message(e,
+          GraphQLShorts.CommonErrors.translate_error(e,
             {
               %{is_struct: Ecto.Changeset, data: %{is_struct: MyApp.User}},
               fn changeset ->
@@ -56,7 +56,7 @@ defmodule GraphQLShorts.CommonErrors do
                             )
 
   @doc """
-  This is a convenience function that calls `GraphQLShorts.CommonErrors.convert_to_error_message/3`
+  This is a convenience function that calls `GraphQLShorts.CommonErrors.translate_error/3`
   if `response` is `{:error, term()}` or `:error`.
   """
   @spec handle_response(
@@ -71,11 +71,11 @@ defmodule GraphQLShorts.CommonErrors do
   def handle_response(response, selectors, opts \\ [])
 
   def handle_response({:error, e}, selectors, opts) do
-    {:error, convert_to_error_message(e, selectors, opts)}
+    {:error, translate_error(e, selectors, opts)}
   end
 
   def handle_response(:error, selectors, opts) do
-    convert_to_error_message(:error, selectors, opts)
+    translate_error(:error, selectors, opts)
   end
 
   def handle_response(res, _, _), do: res
@@ -86,7 +86,7 @@ defmodule GraphQLShorts.CommonErrors do
 
   ### Examples
 
-      iex> GraphQLShorts.CommonErrors.convert_to_error_message(
+      iex> GraphQLShorts.CommonErrors.translate_error(
       ...>   %{code: :not_found, message: "no records found", details: %{query: MyApp.Schemas.User, params: %{id: 1}}},
       ...>   {
       ...>     %{code: :not_found},
@@ -110,24 +110,24 @@ defmodule GraphQLShorts.CommonErrors do
         }
       ]
   """
-  @spec convert_to_error_message(
+  @spec translate_error(
           error :: term(),
           selectors :: selector() | selectors()
         ) :: list(top_level_error() | user_error())
-  @spec convert_to_error_message(
+  @spec translate_error(
           error :: term(),
           selectors :: selector() | selectors(),
           opts :: keyword()
         ) :: list(top_level_error() | user_error())
-  def convert_to_error_message(error, selectors, opts \\ [])
+  def translate_error(error, selectors, opts \\ [])
 
-  def convert_to_error_message(error, selectors, opts) when is_list(error) do
+  def translate_error(error, selectors, opts) when is_list(error) do
     error = if Keyword.keyword?(error), do: [error], else: error
 
     Enum.flat_map(error, &apply_selector(&1, selectors, opts))
   end
 
-  def convert_to_error_message(error, selectors, opts) do
+  def translate_error(error, selectors, opts) do
     apply_selector(error, selectors, opts)
   end
 
