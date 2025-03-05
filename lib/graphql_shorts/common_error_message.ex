@@ -166,55 +166,65 @@ defmodule GraphQLShorts.CommonErrorMessage do
   ## Mapping HTTP Codes to GraphQL Errors
 
   HTTP status codes describe the outcome of an operation. To simplify
-  GraphQL error handling, we categorize a small subset of relevant codes
-  into meaningful groups.
+  GraphQL error handling, we categorize a small subset of relevant
+  codes into meaningful groups:
 
-  The three categories are:
+    * Server Errors - Server related errors that prevent an entire
+      operation from being executed. (e.g. internal server errors /
+      rate-limiting errors)
 
-    * Server Errors - Server related errors that prevent an entire operation from being executed. (e.g. internal server errors / rate-limiting errors)
+    * Mutation User Errors - Business logic and data-validation
+      errors.
 
-    * Mutation User Errors - Business logic errors.
-
-    * Query User-Induced Errors - Business logic errors.
+    * Query User-Induced Errors - Business logic and data-validation
+      errors.
 
   ### Server Error Codes
 
-  These codes cover server-sided errors:
+  These errors prevent an entire operation from being executed, typically
+  these are related to server-sided logic such as rate limiting or a
+  server is overloaded.
 
-    * `:internal_server_error` - Unexpected server-side error (e.g.,
+    * `:internal_server_error` - Unexpected server-side error (e.g.
       unhandled exception, dependency failure).
 
     * `:service_unavailable` - Server is temporarily down or overloaded
-      (e.g., maintenance, failing upstream service).
+      (e.g. maintenance, failing upstream service).
 
-    * `:unauthorized` - Authentication failed (e.g., missing or invalid API
-      token).
+    * `:unauthorized` - Authentication failed (e.g. missing or invalid
+      API token).
 
     * `:too_many_requests` - API request limit exceeded.
 
   ### Mutation User Error Codes
 
-  These errors are predictable due to invalid input or conflicting state:
+  These errors are predictable due to invalid input or conflicting state.
 
-    * `:bad_request` - Malformed input (e.g., invalid ID or JSON string).
+    * `:bad_request` - Malformed input (e.g. invalid ID or JSON string).
 
-    * `:conflict` - Conflict with existing data (e.g., duplicate email).
+    * `:conflict` - Conflict with existing data (e.g. duplicate email).
 
-    * `:forbidden` - Insufficient permissions (e.g., deleting another user’s post without admin rights).
+    * `:forbidden` - Insufficient permissions (e.g. deleting another
+      user’s post without admin rights).
 
-    * `:gone` - The resource was deleted and cannot be retrieved (e.g., soft-deleted record).
+    * `:gone` - The resource was deleted and cannot be retrieved (e.g.
+      soft-deleted record).
 
-    * `:not_found` - The requested resource does not exist (e.g., incorrect record ID).
+    * `:not_found` - The requested resource does not exist (e.g.
+      incorrect record ID).
 
-    * `:precondition_failed` - Optimistic locking or conditional update check failed. (e.g., Trying to edit a document locked by another user).
+    * `:precondition_failed` - Optimistic locking or conditional update
+      check failed. (e.g. Trying to edit a document locked by another
+      user).
 
-    * `:unprocessable_entity` - Input violates business rules (e.g., weak password, invalid email format).
+    * `:unprocessable_entity` - Input violates business rules (e.g.
+      weak password, invalid email format).
 
   ### Query User-Induced Error Codes
 
-  These errors are predictable due to invalid input or unavailable data:
+  These errors are predictable due to invalid input or unavailable data.
 
-    * `:bad_request` - Malformed input (e.g., invalid ID or JSON string).
+    * `:bad_request` - Malformed input (e.g. invalid ID or JSON string).
 
     * `:forbidden` - Insufficient permissions to access fields or resources.
 
@@ -222,7 +232,8 @@ defmodule GraphQLShorts.CommonErrorMessage do
 
     * `:not_found` - The requested resource does not exist.
 
-    * `:unprocessable_entity` - Query contains valid syntax but invalid input values (e.g., filtering with an invalid date range).
+    * `:unprocessable_entity` - Query contains valid syntax but invalid
+      input values (e.g. filtering with an invalid date range).
 
   ### Examples
 
