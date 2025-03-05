@@ -1,43 +1,6 @@
 defmodule GraphQLShorts.CommonErrors do
   @moduledoc """
   # GraphQLShorts.CommonErrors
-
-  `GraphQLShorts.CommonErrors` provides functionality
-  for managing errors in a predictable way.
-
-  ## How to Use
-
-  The functions in this API are used by resolvers to translate
-  system errors into GraphQL compliant errors.
-
-  For example:
-
-  ```elixir
-  defmodule MyAppWeb.UserResolver do
-    alias GraphQLShorts.CommonChangeset
-
-    def create_user(%{input: input} = args, _resolution) do
-      case MyApp.create_user(%{email: input.email}) do
-        {:ok, user} ->
-          {:ok, %{user: user}}
-
-        {:error, e} ->
-          GraphQLShorts.CommonErrors.translate_error(e,
-            {
-              %{is_struct: Ecto.Changeset, data: %{is_struct: MyApp.User}},
-              fn changeset ->
-                CommonChangeset.convert_to_graphql_user_errors(
-                  changeset,
-                  input,
-                  keys: [:email]
-                )
-              end
-            }
-          )
-      end
-    end
-  end
-  ```
   """
   alias GraphQLShorts.TopLevelError
 
